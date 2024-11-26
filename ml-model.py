@@ -123,3 +123,30 @@ def train_and_evaluate_model_with_graphs(target, threshold):
 # Train and evaluate models for each threshold with visualizations
 train_and_evaluate_model_with_graphs('PTS_10+', 10)
 train_and_evaluate_model_with_graphs('PTS_20+', 20)
+
+# Define the feature and target
+X = data[['AST']]  # Feature(s)
+y = data['PTS_10+']  # Target variable (change to the correct target column)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Parameter grid
+param_grid = {
+    'n_estimators': [100, 200, 500],
+    'max_depth': [None, 10, 20],
+    'min_samples_split': [2, 5, 10]
+}
+
+# Perform grid search
+grid_search = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=3, scoring='accuracy')
+grid_search.fit(X_train, y_train)
+
+# Output best parameters
+print("Best Parameters:", grid_search.best_params_)
+
+thresholds = [10, 15, 20, 25]
+for threshold in thresholds:
+    target = f'PTS_{threshold}+'
+    data[target] = data['PTS'].apply(lambda x: 1 if x >= threshold else 0)
+    train_and_evaluate_model_with_graphs(target, threshold)
