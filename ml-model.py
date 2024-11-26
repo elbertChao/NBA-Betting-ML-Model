@@ -9,57 +9,57 @@ from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 
+# load the dataset
 data = pd.read_csv("/content/drive/MyDrive/DS 3000/nba_data_processed.csv")
-
-# Calculate correlations
 data.head()
 
-# Drop rows with missing values (if any)
+# drop all rows with empty values
 data = data.dropna()
 
-# Define thresholds and create binary labels for each threshold
+# using a threshold of points being 10+ or 20+ for realistic betting
+# possibilites
 data['PTS_10+'] = data['PTS'].apply(lambda x: 1 if x >= 10 else 0)
 data['PTS_20+'] = data['PTS'].apply(lambda x: 1 if x >= 20 else 0)
 
-# Define the feature and target for each threshold
-X = data[['AST']]  # Use assists as the single feature
+X = data[['AST']]  # using assists as the single feature
+y = data['PTS_10+']  # Target variable (change to the correct target column)
 
-# Function to train and evaluate a model for a given threshold
+# function to train and evaluate a model for a given threshold
 def train_and_evaluate_model(target, threshold):
-    # Split the data
+    # split data using only 20% for training
     X_train, X_test, y_train, y_test = train_test_split(X, data[target], test_size=0.2, random_state=42)
 
-    # Initialize and train the model
+    # initialize and train the model
     model = RandomForestClassifier(random_state=42)
     model.fit(X_train, y_train)
 
-    # Make predictions
+    # computing predictions
     y_pred = model.predict(X_test)
 
-    # Evaluate the model
+    # printing evaluation metrics
     print(f"Results for predicting if PTS >= {threshold}:\n")
     print("Accuracy:", accuracy_score(y_test, y_pred))
     print("Classification Report:\n", classification_report(y_test, y_pred))
     print("\n" + "="*50 + "\n")
 
-# Train and evaluate models for each threshold
+# call function above to test out the thresholds
 train_and_evaluate_model('PTS_10+', 10)
 train_and_evaluate_model('PTS_20+', 20)
 
+# **** Checking the correlation matrix to determine which feature pairs are good to pair
 selected_columns = ["Age",'FG', 'FGA', '3PA', 'FT', 'MP', 'TRB', 'AST', 'STL', 'PTS']
 correlation_matrix = data[selected_columns].corr()
-
-# Mask to hide diagonal elements (self-correlations)
+# mask to hide diagonal elements (self-correlations)
 mask = np.eye(len(correlation_matrix), dtype=bool)
 masked_correlation_matrix = correlation_matrix.mask(mask)
 
-# Plot the masked correlation matrix
+# plotting the correlation matrix
 plt.figure(figsize=(10, 8))
 sns.heatmap(masked_correlation_matrix, annot=True, cmap="coolwarm", vmin=-1, vmax=1, linewidths=0.5, square=True)
 plt.title("Correlation Matrix (Selected Features)")
 plt.show()
 
-# Function to plot the confusion matrix
+# **** CONFUSION MATRIX ****
 def plot_confusion_matrix(y_test, y_pred, threshold):
     cm = confusion_matrix(y_test, y_pred)
     plt.figure(figsize=(6, 4))
@@ -69,7 +69,7 @@ def plot_confusion_matrix(y_test, y_pred, threshold):
     plt.title(f"Confusion Matrix for PTS >= {threshold}")
     plt.show()
 
-# Function to plot feature importance
+# **** Feature importance Plot ****
 def plot_feature_importance(model, features, threshold):
     importance = model.feature_importances_
     plt.figure(figsize=(8, 6))
@@ -79,7 +79,7 @@ def plot_feature_importance(model, features, threshold):
     plt.title(f"Feature Importance for PTS >= {threshold}")
     plt.show()
 
-# Function to plot the ROC Curve
+# **** ROC Curve ****
 def plot_roc_curve(y_test, y_pred_prob, threshold):
     fpr, tpr, _ = roc_curve(y_test, y_pred_prob)
     roc_auc = auc(fpr, tpr)
@@ -92,41 +92,37 @@ def plot_roc_curve(y_test, y_pred_prob, threshold):
     plt.legend(loc="lower right")
     plt.show()
 
-# Updated function to train and evaluate a model and generate visualizations
+# an updated function to train and evaluate a model and generate visualizations based on the functions above
+# confusion matrix, feature importance, and roc curve for each target
 def train_and_evaluate_model_with_graphs(target, threshold):
-    # Split the data
+    # same 20% training split
     X_train, X_test, y_train, y_test = train_test_split(X, data[target], test_size=0.2, random_state=42)
 
-    # Initialize and train the model
+    # using random foresting for the classification problem
     model = RandomForestClassifier(random_state=42)
     model.fit(X_train, y_train)
 
-    # Make predictions
+    # performing predictions
     y_pred = model.predict(X_test)
     y_pred_prob = model.predict_proba(X_test)[:, 1]
 
-    # Evaluate the model
+    # displaying results
     print(f"Results for predicting if PTS >= {threshold}:\n")
     print("Accuracy:", accuracy_score(y_test, y_pred))
     print("Classification Report:\n", classification_report(y_test, y_pred))
     print("\n" + "=" * 50 + "\n")
 
-    # Plot confusion matrix
+    # VISUALIZATION
+    # plot confusion matrix
     plot_confusion_matrix(y_test, y_pred, threshold)
-
-    # Plot feature importance (if more than one feature is used)
+    # plot feature importance (if more than one feature is used)
     plot_feature_importance(model, X.columns, threshold)
-
-    # Plot ROC curve
+    # plot ROC curve
     plot_roc_curve(y_test, y_pred_prob, threshold)
 
-# Train and evaluate models for each threshold with visualizations
+# perform evaluations with the 3 plots above
 train_and_evaluate_model_with_graphs('PTS_10+', 10)
 train_and_evaluate_model_with_graphs('PTS_20+', 20)
-
-# Define the feature and target
-X = data[['AST']]  # Feature(s)
-y = data['PTS_10+']  # Target variable (change to the correct target column)
 
 # Split the data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
